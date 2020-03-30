@@ -1,0 +1,11 @@
+  v 1.0
+d speccurve Stata package to plot specification curves
+d
+d {bf:M. E. Andresenr, Research department, Statistics Norway}
+d Stata package to plot specification curves.  After installation, see help {bf:mtefe}, help {bf:mtefeplot}.
+d
+d Distribution-Date: 20200330
+f speccurve.ado
+f speccurve.sthlp
+f speccurve_gendata.ado
+f speccurve_ex.do
