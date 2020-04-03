@@ -7,7 +7,10 @@ cap program drop speccurve_gendata
 		
 	clear all
 	sysuse auto, clear
-
+	
+	cap rm estiv.ster
+	cap rm estfs.ster
+	
 	tokenize mpg headroom trunk gear_ratio length turn
 
 	loc no=0
