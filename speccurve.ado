@@ -1,4 +1,4 @@
-*! speccurve v0.2, 11072019
+*! speccurve v1.0, 05052020
 * Author: Martin Eckhoff Andresen
 
 cap program drop speccurve panelparse speccurverun sortpreserve addplotparse
