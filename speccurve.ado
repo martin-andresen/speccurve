@@ -8,6 +8,13 @@ program define speccurve
 	
 	preserve
 	
+	//check dependencies
+	cap which parmest
+	if _rc==0 {
+		di in red "Speccurve uses parmest, install from ssc by typing ssc install parmest"
+		exit 301
+		}
+	
 	loc panelno=0
 	loc controlpanelno=0
 	while "`0'" ! = "" {
