@@ -37,7 +37,7 @@ cap program drop speccurve_gendata
 										estadd scalar domestic=`domestic'
 										loc numc: word count `controls'
 										estadd scalar numcontrols=`numc'
-										est sto ols`no'
+										eststo ols`no'
 										}
 							}
 						}
