@@ -43,7 +43,7 @@ program define speccurve
 	
 	speccurverun `syntax' panels(`panels') controlpanelno(`controlpanelno') controlgraphopts(`controlgraphopts') controltitle(`controltitle') controllabels(`controllabels')
 	
-	restore
+
 	end
 
 
@@ -54,6 +54,7 @@ program define speccurve
 		version 15.0
 		
 		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addplot(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) fill] 
+		
 		
 		qui {
 			tempvar spec coefs r keepvar bin name modelno
