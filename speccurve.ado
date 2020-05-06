@@ -44,7 +44,7 @@ program define speccurve
 * Inspired by Uri Simonsohn, Joseph Simmons and Leif D. Nelson's paper on the specification curve and Hans H. Sievertsen @ Twitter
 
 	program define speccurverun
-		version 16.0
+		version 15.0
 		
 		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addplot(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) fill] 
 		
