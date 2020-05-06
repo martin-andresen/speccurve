@@ -10,7 +10,7 @@ program define speccurve
 	
 	//check dependencies
 	cap which parmest
-	if _rc==0 {
+	if _rc!=0 {
 		di in red "Speccurve uses parmest, install from ssc by typing ssc install parmest"
 		exit 301
 		}
