@@ -4,7 +4,7 @@
 cap program drop speccurve panelparse speccurverun sortpreserve addplotparse
 
 program define speccurve
-	version 16.0
+	version 15.0
 	
 	preserve
 	
