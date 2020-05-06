@@ -481,17 +481,6 @@ program define speccurve
 		
 		if `numpanels'>0|"`addplot'"!="" graph combine `coefs' `scatters' `addlplots', cols(1) graphregion(color(white)) imargin(0 0 0 0) ysize(`ysize') name(speccurve, replace)
 	
-	/*
-	noi di "ysize total:`ysize'"
-	noi di "ysize main:`ysizemain'"
-	noi di "ysize control panel: `ysize1'"
-	noi di "ysize addplot:`ysizeaddplot'"
-	
-	noi di "fysize main: `=100*`ysizemain'/`ysize''"
-	noi di "ysize control panel: `=100*`ysize1'/`ysize''"
-	noi di "ysize addplot:`=100*`ysizeaddplot'/`ysize''"
-	*/
-	
 	}
 
 end
