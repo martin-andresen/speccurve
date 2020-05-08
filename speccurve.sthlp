@@ -14,7 +14,7 @@
 
 	{p 8 11 2}
 	{cmd:speccurve} [namelist] [using] {cmd:,} param(name) [main(name) panel(namelist, {it:panel_opts}) controls[({it:panel_opts})] addplot([namelist] 
-					[samemodel] [using], param(name) {it:panel_opts}) levels(numlist) keep(numlist) sort(name|none) fill graphopts(string) title(string)]
+					[samemodel] [using], param(name) {it:panel_opts}) levels(numlist) keep(numlist) sort(name|none) fill graphopts(string) title(string) save(name)]
 
 	{synoptset 30}{...}
 	{synopthdr:options}
@@ -28,7 +28,7 @@
 	covariates (excluding the parameter of interest) is present in each specification. Options (which may
 	be specified within parentheses) are detailed below. Order of the specification of this panel relative 
 	to the other specifications determines plot order.{p_end}
-	{synopt:{opt addplot([samemodel] [namelist], param(name) [panel_opts])}} specifies that an additional plot is drawn, plotting
+	{synopt:{opt addplot([samemodel] [namelist] [using], param(name) [panel_opts])}} specifies that an additional plot is drawn, plotting
 	the distribution of another parameter of interest. param(name)-suboption is required, other options detailed
 	below. Estimates are sorted according to the sort order in the main panel.{p_end}
 	{synopt:{opt levels(numlist)}} levels for confidence intervals, maximum 2. Default is 90 and 95% intervals.{p_end}
@@ -36,6 +36,8 @@
 	{synopt:{opt graphopts(string)}} twoway options added to the main coefficient panel, use with caution.{p_end}
 	{synopt:{opt sort(none|varname)}} changes sorting behavior. "none" does not sort estimates at all, "varname" sorts by specified variable. Default behaviour is to sort by estimate size.{p_end}
 	{synopt:{opt title}} specifies the title of the main coefficient panel.{p_end}
+	{synopt:{opt fill}} sets missing data for scalars specified in panel to 0.{p_end}
+	{synopt:{opt save(name)}} saves the dataset in {it:name}, replacing any existing file by that name, before plotting and applying keep().{p_end}
 
 	{synoptline}
 
@@ -48,7 +50,7 @@
 	{pstd}
 	If {it:using} is not specified, speccurve takes estimates from memory. If {it:using} is specified, speccurve takes estimates from the file 
 	using.ster. Either way, if {it:namelist} is specified, only estimates specified in namelist are used. Abbreviations and wildcards are allowed.
-	If  {it:namelist} are unspecified, all estimates in memory or in using.ster are used. When saving estimates, store one-word estimate names 
+	If  {it:namelist} is unspecified, all estimates in memory or in using.ster are used. When saving estimates, store one-word estimate names 
 	in estimates title using estimates title: yourname before saving if you want to use namelist to refer to some of them.{p_end}
 
 	{pstd}
@@ -71,14 +73,40 @@
 	models already specified, in essence plotting a control variable. Alternatively, using may be specified to take these estimate from models stored
 	in using.ster. If neither using nor samemodel is specified speccurve takes estimates from models in memory. Either way, only estimates specified
 	in namelist is used, allowing wildcards, so that you may specify a subset of the estimates in memory or using.ster be used. Unless taking estimates
-	from the same model as the main panel using samemodel, speccurve throws an error if the number of models specified in addplot is not equal to the 
-	number of models specified for the main panel. Addplot allows further suboptions, see below.{p_end}
+	from the same model as the main panel using samemodel, speccurve will assume that the order in which the models appear are the same as specified
+	for the main coefficient of interest. Addplot allows further suboptions, see below.{p_end}
 	
 	{pstd}Panel(), controls() and addplot() options all allow the suboptions title() and graphopts(), where the first specifies a title of the relevant
 	panel and the latter specifies other {helpb twoway_options} to be added to the panel - use with caution because these may interfere with the panel 
 	spacing and alignment. Panel() and controls() also allows labels(), where the user can specify alternative one-word labels for each entry in the panel
 	that appear on the y axis.{p_end}
 
+	{marker preparation}{...}
+	{title:Saving or storing your models before using speccurve}
+
+	{pstd}
+	{cmd:speccurve} takes results from saved (if specifying {it:using}) or stored (if not) models. Stata can store a maximum of 512 models in memory, so 
+	if the number of specifications exceed this, you need to save the estimates.{p_end}
+	
+	{pstd}
+	First estimate your model using any e-class command that stores b and V in e(). If you want to use custom specification panels, you need to store 
+	scalars with the estimates indicating the details of the specification using estadd. As an example, add a scalar indicating that the "foreign" 
+	subsample was used by specifying estadd scalar "foreign=1" or add the numeber of the polynomial of some control using "estadd scalar polynomial=2".{p_end}
+	
+	{pstd}
+	After all details of the specification is added to the estimate, either store the estimate using "eststo name", or add a title and save the estimate 
+	using "estimates title: name" (one word names only) followed by "estimates save filename, append", where append assures that you add the model to 
+	"filename" in addition to any models already stored there - all models must be saved in the same file.{p_end}
+	
+	{pstd}
+	If you want a custom control panel, where for example fixed effects are indicated with a single line for a full set of fixed effect rather than a
+	line for each level of the fixed effect, you'll need to add indicators for this manually, for example using estadd scalar county_fe=1 and later
+	panel(county_fe) in speccurve to specify the panel manually.{p_end}
+	
+	{pstd}
+	After doing this for all your specifications, you are ready to plot specification curves.{p_end}
+	
+	
 	{marker examples}{...}
 	{title:Examples}
 

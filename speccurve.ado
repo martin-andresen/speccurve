@@ -1,19 +1,12 @@
-*! speccurve v1.0, 05052020
+*! speccurve v1.01, 08052020
 * Author: Martin Eckhoff Andresen
 
 cap program drop speccurve panelparse speccurverun sortpreserve addplotparse
 
 program define speccurve
-	version 16.0
+	version 15.0
 	
 	preserve
-	
-	//check dependencies
-	cap which parmest
-	if _rc!=0 {
-		di in red "Speccurve uses parmest, install from ssc by typing ssc install parmest"
-		exit 301
-		}
 	
 	loc panelno=0
 	loc controlpanelno=0
@@ -53,11 +46,11 @@ program define speccurve
 	program define speccurverun
 		version 15.0
 		
-		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addplot(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) fill] 
+		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addplot(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) save(name) fill] 
 		
 		
 		qui {
-			tempvar spec coefs r keepvar bin name modelno
+			tempvar spec coefs r keepvar bin
 			tempfile output
 			
 			loc numpanels=0
@@ -98,9 +91,30 @@ program define speccurve
 				loc level`i'=`lev'
 				}
 			
+			//Parse addplot() option
+			if "`addplot'"!="" {
+				addplotparse `addplot'
+				loc namelistaddplot `s(namelist)'
+				loc paramaddplot `s(param)'
+				loc addplottitle `s(title)'
+				loc samemodel `s(samemodel)'
+				loc addplotusing `s(using)'
+				tempfile addplotdata
+			}
 	
-		//Take estimates from ster file and parmest them to dataset
-		if "`using'"!="" {
+		//Create dataset from estimates
+		clear
+		foreach var in estimate `panelvars' `sortvar' modelno {
+			gen `var'=.
+			}
+		gen parm=""
+		gen name=""
+		foreach lev in `level' {	
+			gen min`lev'=.
+			gen max`lev'=.
+			}
+		
+		if "`using'"!="" { //if taking data from .ster file
 			cap estimates describe using `using'
 			if _rc!=0 {
 				noi di in red "Using file `using'.ster not found."
@@ -108,32 +122,29 @@ program define speccurve
 				}
 			forvalues i=1/`=r(nestresults)' {
 				estimates use `using', number(`i')
+				loc modname `e(estimates_title)'
 				if "`anything'"!="" {
-					loc numwordstitle: word count `r(title)'
+					loc numwordstitle: word count `modname'
 					if `numwordstitle'>1 {
-						noi di in red "Use only one-word names for estimates titles when storing them on disk and specifying namelist. Estimate `r(title)' contains more than one word."
+						noi di in red "Use only one-word names for estimates titles when storing them on disk and specifying namelist. Estimate `modname' contains more than one word."
 						exit 301
 						}
 					}
-				parmest, norestore escal(`panelvars' `sortvar') emac(estimates_title) level(`level')
-				count if parm=="`param'"
-				if r(N)==0 {
-					noi di in red "No parameter `param' found in estimate number `i'"
-					exit 301
-					}
-				rename em_1 `name'
-				gen `modelno'=`i'
-				cap append using `output'
-				save `output', replace
+				if `controlpanelno'!=0 loc colnames: colnames e(b)
+				else if "`addplot'"!="" loc colnames `param' `paramaddplot'
+				else loc colnames `param'
+				savecoefs `colnames', level(`level') scalars(`panelvars' `sortvar')
+				replace modelno=`i' if modelno==.
+				replace name="`modname'" if name==""
 				}
 			if "`anything'"!="" {
 				gen `keepvar'==0
 				foreach okname in `anything' {
-					replace `keepvar'=1 if strmatch(`name',"`okname'")==1
+					replace `keepvar'=1 if strmatch(name,"`okname'")==1
 					}
 				drop if `keepvar'==0
 				drop `keepvar'
-				levelsof `name', local(namelist)
+				levelsof name, local(namelist)
 				}
 
 			}
@@ -145,32 +156,19 @@ program define speccurve
 			foreach est in `namelist' {
 				loc ++i
 				est restore `est'
-				parmest, norestore escal(`panelvars' `sortvar') level(`level')
-				count if parm=="`param'"
-				if r(N)==0 {
-					noi di in red "No parameter `param' found in estimate `est'"
-					exit 301
-					}
-				gen `name'="`est'"
-				gen `modelno'=`i'
-				cap append using `output'
-				save `output', replace
+				if `controlpanelno'!=0 loc colnames: colnames e(b)
+				else if "`addplot'"!=""&"`samemodel'"!="" loc colnames `param' `paramaddplot'
+				else loc colnames `param'
+				savecoefs `colnames', level(`level') scalars(`panelvars' `sortvar')
+				replace name="`est'" if name==""
+				replace modelno=`i' if modelno==.
 				}
 			}
 		
 		drop if parm=="_cons"
 		
-		//Parse addplot() option
-		if "`addplot'"!="" {
-			addplotparse `addplot'
-			loc namelistaddplot `s(namelist)'
-			loc paramaddplot `s(param)'
-			loc addplottitle `s(title)'
-			loc samemodel `s(samemodel)'
-			loc addplotusing `s(using)'
-			tempfile addplotdata
-			}
-			
+		
+
 		//automatic control panel
 		if `controlpanelno'!=0 {
 			
@@ -182,7 +180,7 @@ program define speccurve
 					loc ++c
 					replace `bin'=parm=="`parm'"
 					tempname c`c'
-					bys `name': egen `c`c''=max(`bin')
+					bys name: egen `c`c''=max(`bin')
 					loc panelvars`controlpanelno' `panelvars`controlpanelno'' `c`c''
 					}
 			local numvars`controlpanelno': word count `panelvars`controlpanelno''
@@ -191,100 +189,79 @@ program define speccurve
 			else loc labels`controlpanelno' `parmlist'
 			loc graphopts`controlpanelno' `controlgraphopts'
 			
-			save `output', replace
-			}
 			
-
+			}
+		
+		if "`samemodel'"!="" keep if inlist(parm,"`param'","`paramaddplot'")
+		else keep if parm=="`param'"
+		
 		//addplot option
 		if "`addplot'"!="" {
 			if "`samemodel'"=="" {
-			
-				if "`addplotusing'"!="" { //when taking addplot estimates from file
-				cap estimates describe using `addplotusing'
-				if _rc!=0 {
-					noi di in red "Using file `addplotusing'.ster specified in addplot() not found."
-					exit 301
-					}
-				forvalues i=1/`=r(nestresults)' {
-					estimates use `addplotusing', number(`i')
-					if "`namelistaddplot'"!="" {
-						loc numwordstitle: word count `r(title)'
-						if `numwordstitle'>1 {
-							noi di in red "Use only one-word names for estimates titles when storing them on disk and specifying namelist. Estimate `r(title)' specified in addplot() contains more than one word."
-							exit 301
+					if "`addplotusing'"!="" { //when taking addplot estimates from file
+					cap estimates describe using `addplotusing'
+					if _rc!=0 {
+						noi di in red "Using file `addplotusing'.ster not found."
+						exit 301
+						}
+					forvalues i=1/`=r(nestresults)' {
+						estimates use `addplotusing', number(`i')
+						loc modname `e(estimates_title)'
+						if "`namelistaddplot'"!="" {
+							loc numwordstitle: word count `e(estimates_title)'
+							if `numwordstitle'>1 {
+								noi di in red "Use only one-word names for estimates titles when storing them on disk and specifying namelist. Estimate `modname' contains more than one word."
+								exit 301
+								}
 							}
+						savecoefs `paramaddplot', level(`level')
+						replace modelno=`i' if modelno==.
+						replace name="`modname'" if name==""
 						}
-					parmest, norestore emac(estimates_title) level(`level')
-					rename em_1 `name'
-					gen `modelno'=`i'
-					cap append using `addplotdata'
-					save `addplotdata', replace
-					}
-				if "`namelistaddplot'"!="" {
-					gen `keepvar'=0
-					foreach okname in `namelistaddplot' {
-						replace `keepvar'=1 if strmatch(`name',"`okname'")==1
+					if "`namelistaddplot'"!="" {
+						gen `keepvar'=0
+						foreach okname in `anything' {
+							replace `keepvar'=1 if strmatch(name,"`okname'")==1
+							}
+						drop if `keepvar'==0
+						drop `keepvar'
 						}
-					drop if `keepvar'==0
-					drop `keepvar'
-					}
 
 				}
 			
-			else { //when taking estimates from memory
-				est dir `namelistaddplot'
-				loc namelistaddplot `=r(names)'
-				loc i=0
-				foreach est in `namelistaddplot' {
-				loc ++i
-					est restore `est'
-					parmest, norestore level(`level')
-					gen `name'="`est'"
-					gen `modelno'=`i'
-					cap append using `addplotdata'
-					save `addplotdata', replace
+				else { //when taking estimates from memory
+					est dir `namelistaddplot'
+					loc namelistaddplot `=r(names)'
+					loc i=0
+					foreach est in `namelistaddplot' {
+						loc ++i
+						est restore `est'
+						savecoefs `paramaddplot', level(`level')
+						replace name="`est'" if name==""
+						replace modelno=`i' if modelno==.
+						}
 					}
 				}
-			fvexpand min* max* estimate
-			foreach var in `r(varlist)' {
-				rename `var' `var'_a
-				}
-			keep min* max* estimate* `modelno' parm
-			keep if parm=="`paramaddplot'"
-			drop parm
-			
-			merge 1:m `modelno' using `output', keep(2 3)
-			
-			count if _merge!=3
-			if r(N)>0 {
-				noi di in red "Number of models specified in addplot() is not equal to the number of models specified."
-				exit 301
-				}
-			}
 		
-		else { //if samemodel specified
-			keep if inlist(parm,"`param'","`paramaddplot'")
-			gen n=1 if parm=="`param'"
-			replace n=2 if parm=="`paramaddplot'"
-			keep min* max* estimate `modelno' `name' n parm __*
-			reshape wide estimate min* max* parm , i(`modelno' `name') j(n)
-			fvexpand min* max* estimate* parm*
-			foreach var in `r(varlist)' {
-				if substr("`var'",-1,1)=="1" rename `var' `=substr("`var'",1,strlen("`var'")-1)'
-				else rename `var' `=substr("`var'",1,strlen("`var'")-1)'_a
-				}	
+		save tmp, replace
+		keep if inlist(parm,"`param'","`paramaddplot'")
+		gen n=1 if parm=="`param'"
+		replace n=2 if parm=="`paramaddplot'"
+		keep min* max* estimate modelno name n parm `panelvars' `sortvar' `panelvars`controlpanelno''
+		reshape wide estimate min* max* parm name `panelvars' `sortvar' `panelvars`controlpanelno'', i(modelno) j(n)
+		foreach var in name `panelvars' `sortvar' `panelvars`controlpanelno'' {
+			drop `var'2
+			rename `var'1 `var'
 			}
+		fvexpand min* max* estimate* parm*
+		foreach var in `r(varlist)' {
+			if substr("`var'",-1,1)=="1" rename `var' `=substr("`var'",1,strlen("`var'")-1)'
+			else rename `var' `=substr("`var'",1,strlen("`var'")-1)'_a
+			}	
 		}
-		
-		loc j=0
-		foreach var in `panelvars' `sortvar' {
-			loc ++j
-			cap rename es_`j' `var'
-			}
 		
 		
 		//finalize dataset
-		keep if parm=="`param'"
 		if "`sort'"!="none" {
 			if "`sort'"=="" sort estimate
 			else sort `sortvar'
@@ -292,6 +269,7 @@ program define speccurve
 		gen `spec'=_n
 		
 		loc Nspec=_N
+		if "`save'"!="" save `save', replace
 			
 		//DROP ESTIMATES IF KEEP() option specified
 		if "`keep'"!="" {
@@ -308,7 +286,7 @@ program define speccurve
 			else {
 				tempvar dum run
 				gen `r'=runiform()
-				gen `dum'=`name'=="`main'"
+				gen `dum'=name=="`main'"
 				sort `dum' `spec'
 				bys `dum': gen `run'=_n
 				gen `keepvar'=(`dum'==1|`run'<=`keep1'|`run'>=_N-`keep3')
@@ -320,7 +298,7 @@ program define speccurve
 				su `spec'
 				loc Nspec=_N
 				if "`main'"!="" {
-					su `spec' if `name'=="`main'"
+					su `spec' if name=="`main'"
 					if r(mean)<=`=`keep1'+`keep2'' {
 						loc xline2=`keep1'+`keep2'+1.5
 						if r(mean)<=`keep1' loc xline1=`keep1'+1.5
@@ -340,9 +318,9 @@ program define speccurve
 		loc cols=`numlevel'+1
 		if "`main'"!="" {
 			loc ++cols
-			loc notifmain if `name'!="`main'"
-			loc scattermain (scatter estimate `spec' if `name'=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
-			if "`addplot'"!="" loc scattermain_a (scatter estimate_a `spec' if `name'=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
+			loc notifmain if name!="`main'"
+			loc scattermain (scatter estimate `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
+			if "`addplot'"!="" loc scattermain_a (scatter estimate_a `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
 			loc labmain label(`=`numlevel'+2' "main")
 			loc mainorder=`numlevel'+2
 			}
@@ -444,14 +422,14 @@ program define speccurve
 						}
 					if "`fill'"!="" loc fillstr |`i'==.
 					if (`bin'==2&`vals'==2)|(`bin'==1&`vals'==1) { //plot scatters with dots
-						loc two `two' (scatter y`j' `spec' if `i'==1&`name'!="`main'", msymbol(circle) mcolor(black) msize(`msize'in) mlwidth(vthin)) ///
-						(scatter y`j' `spec' if `i'==0`fillstr'&`name'!="`main'", msymbol(circle_hollow) mlcolor(gs0) mcolor(white) msize(`msize'in) mlwidth(vthin)) ///
-						(scatter y`j' `spec' if `i'==1&`name'=="`main'", msymbol(circle) mcolor(maroon) msize(`msize'in) mlwidth(vthin)) ///
-						(scatter y`j' `spec' if `i'==0`fillstr'&`name'=="`main'", msymbol(circle_hollow) mlcolor(maroon) mcolor(white) msize(`msize'in) mlwidth(vthin))
+						loc two `two' (scatter y`j' `spec' if `i'==1&name!="`main'", msymbol(circle) mcolor(black) msize(`msize'in) mlwidth(vthin)) ///
+						(scatter y`j' `spec' if `i'==0`fillstr'&name!="`main'", msymbol(circle_hollow) mlcolor(gs0) mcolor(white) msize(`msize'in) mlwidth(vthin)) ///
+						(scatter y`j' `spec' if `i'==1&name=="`main'", msymbol(circle) mcolor(maroon) msize(`msize'in) mlwidth(vthin)) ///
+						(scatter y`j' `spec' if `i'==0`fillstr'&name=="`main'", msymbol(circle_hollow) mlcolor(maroon) mcolor(white) msize(`msize'in) mlwidth(vthin))
 						}
 					else { //plot scatters with numbers/values
-						loc two `two' 	(scatter y`j' `spec' if `name'!="`main'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabsize(`msize'in)) ///
-										(scatter y`j' `spec' if `name'=="`main'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabcolor(maroon) mlabsize(`msize'in)) 
+						loc two `two' 	(scatter y`j' `spec' if name!="`main'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabsize(`msize'in)) ///
+										(scatter y`j' `spec' if name=="`main'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabcolor(maroon) mlabsize(`msize'in)) 
 						}
 					}
 				
@@ -487,9 +465,7 @@ program define speccurve
 end
 
 	
-*! panelparse version 0.1
-*! used for speccurve
-*! author Martin Eckhoff Andresen
+//panelparse version 0.1
 
 program panelparse, sclass
 	syntax namelist, [labels(string)) title(string) graphopts(string)]
@@ -511,8 +487,7 @@ program panelparse, sclass
 	sret local graphopts `graphopts'
 end
 
-*!addplotparse
-*! used for speccurve
+//addplotparse
 
 program addplotparse, sclass
 	syntax [anything] [using/], param(name) [title(string) graphopts(string)]
@@ -531,10 +506,43 @@ program addplotparse, sclass
 	sret local graphopts `graphopts'
 	sret local samemodel `samemodel'
 	sret local using `using'
-	
 
 end
 
+
+//savecoefs
+program savecoefs
+syntax [namelist], level(numlist min=1 max=2 ascending integer >0 <100) [scalars(namelist)] 
+	loc k=0
+	foreach lev in `level' {
+		loc ++k
+		tempname r`lev'
+		eret di, level(`lev')
+		mat `r`lev''=r(table)
+		loc level`k'=`lev'
+		}
+		
+if "`namelist'"=="" loc namelist: colnames e(b)
+loc nparms: word count `namelist' 
+loc N=_N
+set obs `=_N+`nparms''
+foreach var in `scalars' {
+	replace `var'=e(`var') if `var'==.
+	}
+loc j=0
+foreach parm in `namelist' {
+	loc ++j
+	cap replace estimate=`r`level1''["b","`parm'"] in `=`N'+`j''
+	cap replace min`level1'=`r`level1''["ll","`parm'"] in `=`N'+`j''
+	cap replace max`level1'=`r`level1''["ul","`parm'"] in `=`N'+`j''
+	cap replace parm="`parm'" in `=`N'+`j''
+	if `k'==2 {
+		cap replace min`level2'=`r`level2''["ll","`parm'"] in `=`N'+`j''
+		cap replace max`level2'=`r`level2''["ul","`parm'"] in `=`N'+`j''
+		}
+	}
+
+end
 		
 		
 
