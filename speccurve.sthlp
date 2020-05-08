@@ -91,7 +91,8 @@
 	{pstd}
 	First estimate your model using any e-class command that stores b and V in e(). If you want to use custom specification panels, you need to store 
 	scalars with the estimates indicating the details of the specification using estadd. As an example, add a scalar indicating that the "foreign" 
-	subsample was used by specifying estadd scalar "foreign=1" or add the numeber of the polynomial of some control using "estadd scalar polynomial=2".{p_end}
+	subsample was used by specifying estadd scalar "foreign=1" or add the numeber of the polynomial of some control using "estadd scalar polynomial=2".
+	estadd is part of the estout package, see ssc -install estout-.{p_end}
 	
 	{pstd}
 	After all details of the specification is added to the estimate, either store the estimate using "eststo name", or add a title and save the estimate 

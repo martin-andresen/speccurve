@@ -4,7 +4,12 @@ cap program drop speccurve_gendata
 		version 15.0
 		
 		syntax , [save(name)]
-		
+	
+	cap which estadd
+	if _rc!=0 {
+		di in red "You need the estout package to add scalars to stored estimates, see -ssc install estadd-."
+		exit 301
+		}
 	clear all
 	sysuse auto, clear
 	
