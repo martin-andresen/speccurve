@@ -533,20 +533,12 @@ loc j=0
 foreach parm in `namelist' {
 	loc ++j
 	cap replace parm="`parm'" in `=`N'+`j''
-	foreach var in b ll ul {
-		if "`var'"=="b" loc varname estimate
-		else if "`var'"=="ll" loc varname min`level1'
-		else if "`var'"=="ul" loc varname max`level1'
-		cap loc `var'=`r`level1''["`var'","`parm'"]
-		replace  `varname'=``var'' in `=`N'+`j''
-		}
+	cap replace estimate=`r`level1''[`=rownumb(`r`level1'',"b")',`=colnumb(`r`level1'',"`parm'")'] in `=`N'+`j''
+	cap replace min`level1'=`r`level1''[`=rownumb(`r`level1'',"ll")',`=colnumb(`r`level1'',"`parm'")'] in `=`N'+`j''
+	cap replace max`level1'=`r`level1''[`=rownumb(`r`level1'',"ul")',`=colnumb(`r`level1'',"`parm'")'] in `=`N'+`j''
 	if `k'==2 {
-		foreach var in b ll ul {
-			if "`var'"=="ll" loc varname min`level2'
-			else if "`var'"=="ul" loc varname max`level2'
-			cap loc `var'=`r`level2''["`var'","`parm'"]
-			replace  `varname'=``var'' in `=`N'+`j''
-			}
+		cap replace min`level2'=`r`level2''[`=rownumb(`r`level2'',"ll")',`=colnumb(`r`level2'',"`parm'")'] in `=`N'+`j''
+		cap replace max`level2'=`r`level2''[`=rownumb(`r`level2'',"ul")',`=colnumb(`r`level2'',"`parm'")'] in `=`N'+`j''
 		}
 	}
 
