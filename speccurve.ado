@@ -4,7 +4,7 @@
 cap program drop speccurve panelparse speccurverun sortpreserve addplotparse
 
 program define speccurve
-	version 16.0
+	version 15.0
 	
 	preserve
 	
@@ -35,7 +35,7 @@ program define speccurve
 		}
 	
 	speccurverun `syntax' panels(`panels') controlpanelno(`controlpanelno') controlgraphopts(`controlgraphopts') controltitle(`controltitle') controllabels(`controllabels')
-	
+
 
 	end
 
@@ -532,13 +532,21 @@ foreach var in `scalars' {
 loc j=0
 foreach parm in `namelist' {
 	loc ++j
-	cap replace estimate=`r`level1''["b","`parm'"] in `=`N'+`j''
-	cap replace min`level1'=`r`level1''["ll","`parm'"] in `=`N'+`j''
-	cap replace max`level1'=`r`level1''["ul","`parm'"] in `=`N'+`j''
 	cap replace parm="`parm'" in `=`N'+`j''
+	foreach var in b ll ul {
+		if "`var'"=="b" loc varname estimate
+		else if "`var'"=="ll" loc varname min`level1'
+		else if "`var'"=="ul" loc varname max`level1'
+		cap loc `var' `r`level1''["`var'","`parm'"]
+		replace  `varname'=``var'' in `=`N'+`j''
+		}
 	if `k'==2 {
-		cap replace min`level2'=`r`level2''["ll","`parm'"] in `=`N'+`j''
-		cap replace max`level2'=`r`level2''["ul","`parm'"] in `=`N'+`j''
+		foreach var in b ll ul {
+			if "`var'"=="ll" loc varname min`level2'
+			else if "`var'"=="ul" loc varname max`level2'
+			cap loc `var' `r`level2''["`var'","`parm'"]
+			replace  `varname'=``var'' in `=`N'+`j''
+			}
 		}
 	}
 
