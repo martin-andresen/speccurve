@@ -537,14 +537,14 @@ foreach parm in `namelist' {
 		if "`var'"=="b" loc varname estimate
 		else if "`var'"=="ll" loc varname min`level1'
 		else if "`var'"=="ul" loc varname max`level1'
-		cap loc `var' `r`level1''["`var'","`parm'"]
+		cap loc `var'=`r`level1''["`var'","`parm'"]
 		replace  `varname'=``var'' in `=`N'+`j''
 		}
 	if `k'==2 {
 		foreach var in b ll ul {
 			if "`var'"=="ll" loc varname min`level2'
 			else if "`var'"=="ul" loc varname max`level2'
-			cap loc `var' `r`level2''["`var'","`parm'"]
+			cap loc `var'=`r`level2''["`var'","`parm'"]
 			replace  `varname'=``var'' in `=`N'+`j''
 			}
 		}
