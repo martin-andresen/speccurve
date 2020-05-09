@@ -1,7 +1,7 @@
 # speccurve
 Stata package to plot specification curves
 
-![Speccurve example]()
+![Speccurve example](https://github.com/martin-andresen/speccurve/blob/master/ex3.png)
 
 Currently only works in Stata 16, makes ugly plots in earlier versions. Looking at it.
 
