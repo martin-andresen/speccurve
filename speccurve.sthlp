@@ -14,7 +14,7 @@
 
 	{p 8 11 2}
 	{cmd:speccurve} [namelist] [using] {cmd:,} param(name) [main(name) panel(namelist, {it:panel_opts}) controls[({it:panel_opts})] addplot([namelist] 
-					[samemodel] [using], param(name) {it:panel_opts}) levels(numlist) keep(numlist) sort(name|none) fill graphopts(string) title(string) save(name)]
+					[samemodel] [using], param(name) {it:panel_opts}) level(numlist) keep(numlist) sort(name|none) fill graphopts(string) title(string) save(name)]
 
 	{synoptset 30}{...}
 	{synopthdr:options}
@@ -28,10 +28,11 @@
 	covariates (excluding the parameter of interest) is present in each specification. Options (which may
 	be specified within parentheses) are detailed below. Order of the specification of this panel relative 
 	to the other specifications determines plot order.{p_end}
-	{synopt:{opt addplot([samemodel] [namelist] [using], param(name) [panel_opts])}} specifies that an additional plot is drawn, plotting
-	the distribution of another parameter of interest. param(name)-suboption is required, other options detailed
+	{synopt:{opt addcoef([samemodel] [namelist] [using], param(name) [panel_opts])}} specifies that an additional plot is drawn, plotting
+	the distribution of another coefficient of interest. param(name)-suboption is required, other options detailed
 	below. Estimates are sorted according to the sort order in the main panel.{p_end}
-	{synopt:{opt levels(numlist)}} levels for confidence intervals, maximum 2. Default is 90 and 95% intervals.{p_end}
+	{synopt:{opt addscalar(name, [panel_opts])}} specifies that an additional scalar from e() is plotted in a separate panel. 	Estimates are sorted according to the sort order in the main panel.{p_end}
+	{synopt:{opt level(numlist)}} level for confidence intervals, maximum 2. Default is 90 and 95% intervals.{p_end}
 	{synopt:{opt keep(numlist)}} Must contain 3 nonnegative integers. Only the #1 smallest point estimates and the #3 largest point estimates are plotted, together with #2 other randomly drawn estimates.{p_end}
 	{synopt:{opt graphopts(string)}} twoway options added to the main coefficient panel, use with caution.{p_end}
 	{synopt:{opt sort(none|varname)}} changes sorting behavior. "none" does not sort estimates at all, "varname" sorts by specified variable. Default behaviour is to sort by estimate size.{p_end}
@@ -68,13 +69,17 @@
 	Subptions allowed, see below.{p_end}
 
 	{pstd}
-	If addplot() is specified, speccurve plots an additional set of coefficients in a separate panel. param(name) suboption is required, specifying
+	If addcoef() is specified, speccurve plots an additional set of coefficients in a separate panel. param(name) suboption is required, specifying
 	the name of the additional parameter of interest. If samemodel is specified in this option, speccurve looks for this coefficient in the same 
 	models already specified, in essence plotting a control variable. Alternatively, using may be specified to take these estimate from models stored
 	in using.ster. If neither using nor samemodel is specified speccurve takes estimates from models in memory. Either way, only estimates specified
 	in namelist is used, allowing wildcards, so that you may specify a subset of the estimates in memory or using.ster be used. Unless taking estimates
 	from the same model as the main panel using samemodel, speccurve will assume that the order in which the models appear are the same as specified
 	for the main coefficient of interest. Addplot allows further suboptions, see below.{p_end}
+	
+	{pstd}
+	Addscalar() works similarly as addcoef, but plots an additional panel with a scatter plot of a scalar stored in e().
+	{p_end}
 	
 	{pstd}Panel(), controls() and addplot() options all allow the suboptions title() and graphopts(), where the first specifies a title of the relevant
 	panel and the latter specifies other {helpb twoway_options} to be added to the panel - use with caution because these may interfere with the panel 
@@ -92,7 +97,7 @@
 	First estimate your model using any e-class command that stores b and V in e(). If you want to use custom specification panels, you need to store 
 	scalars with the estimates indicating the details of the specification using estadd. As an example, add a scalar indicating that the "foreign" 
 	subsample was used by specifying estadd scalar "foreign=1" or add the numeber of the polynomial of some control using "estadd scalar polynomial=2".
-	estadd is part of the estout package, see ssc -install estout-.{p_end}
+	estadd is part of the estout package, see ssc -install estout-. If you are comparing estiamtes using different functional forms, you may wish to compute marginal effects using -margins, dydx(*) post- to store the marginal effects in e() before running speccurve.{p_end}
 	
 	{pstd}
 	After all details of the specification is added to the estimate, either store the estimate using "eststo name", or add a title and save the estimate 
@@ -112,43 +117,39 @@
 	{title:Examples}
 
 	{pstd}
-	Estimate a bunch of models to use for examples. Load auto data and estimate 192 regressions of price on weight, controlling for all combinations 
-	of mpg, headroom, trunk, gear_ratio, length and turn, in samples of a) all cars, b) only foreign cars and c) only domestic cars. Store these in
-	memory, calling them ols1-ols192. Also estimate 96 2SLS models of price on weight, using length as an instrument for weight, and store these in 
-	estiv.ster, and the associated first stage regressions, storing them in estfs.ster. {p_end}
+	Estimate a bunch of (arguably silly) models to use for examples. Load auto data and estimate 128 regressions of price on weight, controlling for all combinations 
+	of mpg, headroom, trunk, gear_ratio, length, turn and displacement. Store these in
+	memory, calling them ols1-ols128. Also estimate 48 2SLS models of price on weight with various controls, using length as an instrument for weight, and store these in 
+	estiv.ster, and the associated first stage regressions, storing them in estfs.ster. Finally estimate linear probability, logit and probit models of the probability that a car is foreign based on weight and various controls, store these in estmod.ster. {p_end}
 
-	{phang2}({stata "speccurve_gendata, save(speccurve_data)":{it:click to run})}{p_end}
-
-	{pstd}
-	Straightforward specification plot of all estimates in memory, highlight main specification {p_end}
-	{phang2}{cmd:. speccurve, param(weight) main(ols3)}{p_end}
-	{phang2}({stata "speccurve, param(weight) main(ols3)":{it:click to run}}){p_end}
+	{phang2}({stata "speccurve_gendata":{it:click to run})}{p_end}
 
 	{pstd}
-	Now add a panel indicating what covariates are included{p_end}
-	{phang2}{cmd:. speccurve, param(weight) controls(title(control variables)) main(ols3))} {p_end}
-	{phang2}({stata "speccurve, param(weight) controls(title(control variables)) main(ols3)":{it:click to run}}) {p_end}
+	Specification plot with automatic control panel, highlight main specification {p_end}
+	{phang2}{cmd:. speccurve, param(weight) controls main(ols1)}{p_end}
+	{phang2}({stata "speccurve, param(weight) controls main(ols1)":{it:click to run}}){p_end}
 
 	{pstd}
-	Unfortunately this figure is a bit cluttered. Therefore just plot the smallest and largest 25 estimates and 25 random estimates in the middle:{p_end}
-	{phang2}{cmd:. speccurve, param(weight) controls(title(control variables)) main(ols3) keep(25 25 25)} {p_end}
-	{phang2}({stata "speccurve, param(weight) controls(title(control variables)) main(ols3) keep(25 25 25)":{it:click to run}}) {p_end}
+	Unfortunately this figure is a bit cluttered. Therefore just plot the smallest and largest 20 estimates and 20 random estimates in the middle:{p_end}
+	{phang2}{cmd:. speccurve, param(weight) controls main(ols1) keep(20 20 20)} {p_end}
+	{phang2}({stata "speccurve, param(weight) controls main(ols1) keep(20 20 20)":{it:click to run}}) {p_end}
 
-	{pstd}
-	Drop the control panel, adding instead a panel indicating the number of control variables used, and what parts of the sample was used :{p_end}
-	{phang2}{cmd:. speccurve, param(weight) main(ols3) keep(25 25 25) panel(numcontrols foreign domestic)} {p_end}
-	{phang2}({stata "speccurve, param(weight) main(ols3) keep(25 25 25) panel(numcontrols foreign domestic)":{it:click to run}}) {p_end}
 	
 	{pstd}
-	Use the addplot() option to plot the values of the control variable length, bring back the control panel:{p_end}
-	{phang2}{cmd:. speccurve, param(weight) main(ols3) keep(25 25 25) controls(title(control variables)) addplot(samemodel, param(length) title(covariate length))} {p_end}
-	{phang2}({stata "speccurve, param(weight) main(ols3) keep(25 25 25) controls(title(control variables)) addplot(samemodel, param(length) title(covariate length)) title(specification curve)":{it:click to run}}) {p_end}
+	Use the addcoef() option to plot the values of the control variable length{p_end}
+	{phang2}{cmd:. speccurve, param(weight) main(ols1) keep(20 20 20) controls addcoef(samemodel, param(length)} {p_end}
+	{phang2}({stata "speccurve, param(weight) main(ols1) keep(20 20 20) controls addcoef(samemodel, param(length))":{it:click to run}}) {p_end}
+	
+	{pstd}
+	Use the addscalar() option to plot a separate plot of R^2 from each model.{p_end}
+	{phang2}{cmd:. speccurve, param(weight) main(ols1) keep(20 20 20) controls addscalar(r2, graphopts(ytitle(R squared)))} {p_end}
+	{phang2}({stata "speccurve, param(weight) main(ols1) keep(20 20 20) controls addscalar(r2, graphopts(ytitle(R squared)))":{it:click to run}}) {p_end}
 
 
 	{pstd}
-	Plot the IV estimates from estiv.ster, a control panel and use the addplot() option to plot the associated first stage estimates for each model, taking them from estfs.ster:{p_end}
-	{phang2}{cmd:. speccurve using estiv, param(weight) main(iv195) keep(25 25 25) controls(title(control variables)) addplot(using estfs, param(length) title(first stage estimates)) title(IV estimates)} {p_end}
-	{phang2}({stata "speccurve using estiv, param(weight) main(iv195) keep(25 25 25) controls(title(control variables)) addplot(using estfs, param(length) title(first stage estimates)) title(IV estimates)":{it:click to run}}) {p_end}
+	Plot the IV estimates from estiv.ster, a control panel and use the addcoef() option to plot the associated first stage estimates for each model, taking them from estfs.ster:{p_end}
+	{phang2}{cmd:. speccurve using estiv, param(weight) main(iv1) keep(20 20 20) controls addcoef(using estfs, param(length) graphopts(ytitle(first stage estimates))) graphopts(ytitle(IV estimates))} {p_end}
+	{phang2}({stata "speccurve using estiv, param(weight) main(iv1) keep(20 20 20) controls addcoef(using estfs, param(length) graphopts(ytitle(first stage estimates))) graphopts(ytitle(IV estimates))":{it:click to run}}) {p_end}
 
 	{marker Author}{...}
 	{title:Author}

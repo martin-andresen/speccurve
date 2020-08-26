@@ -1,7 +1,7 @@
-*! speccurve v1.01, 08052020
+*! speccurve v1.1, 26082020
 * Author: Martin Eckhoff Andresen
 
-cap program drop speccurve panelparse speccurverun sortpreserve addplotparse
+cap program drop speccurve panelparse speccurverun sortpreserve addcoefparse savecoefs
 
 program define speccurve
 	version 16.0
@@ -10,7 +10,7 @@ program define speccurve
 	
 	loc panelno=0
 	loc controlpanelno=0
-	while "`0'" ! = "" {
+	while `"`0'"' ! = "" {
 		gettoken mac 0: 0, parse(" ") bind
 		if substr("`mac'",1,5)=="panel" {
 			loc panels `panels' `mac'
@@ -43,10 +43,10 @@ program define speccurve
 * Author: Martin Eckhoff Andresen
 * Inspired by Uri Simonsohn, Joseph Simmons and Leif D. Nelson's paper on the specification curve and Hans H. Sievertsen @ Twitter
 
-	program define speccurverun
+	program define speccurverun, rclass
 		version 15.0
 		
-		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addplot(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) save(name) fill] 
+		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) save(name) fill addscalar(string)]
 		
 		
 		qui {
@@ -91,21 +91,33 @@ program define speccurve
 				loc level`i'=`lev'
 				}
 			
-			//Parse addplot() option
-			if "`addplot'"!="" {
-				addplotparse `addplot'
-				loc namelistaddplot `s(namelist)'
-				loc paramaddplot `s(param)'
-				loc addplottitle `s(title)'
+			//Parse addcoef() option
+			if "`addcoef'"!="" {
+				addcoefparse `addcoef'
+				loc namelistaddcoef `s(namelist)'
+				loc paramaddcoef `s(param)'
+				loc addcoeftitle `s(title)'
 				loc samemodel `s(samemodel)'
-				loc addplotusing `s(using)'
-				tempfile addplotdata
+				loc addcoefusing `s(using)'
+				loc addcoefscalar `s(scalar)'
+				loc addcoefgraphopts `s(graphopts)'
+				tempfile addcoefdata
 			}
+			
+			//parse addscalar() option
+
+			if "`addscalar'"!="" {
+				addscalarparse `addscalar'
+				loc addscalar `s(namelist)'
+				loc addscalartitle `s(title)'
+				loc addscalargraphopts `s(graphopts)'
+				}
+			
 	
 		//Create dataset from estimates
 		clear
-		foreach var in estimate `panelvars' `sortvar' modelno {
-			gen `var'=.
+		foreach var in estimate `panelvars' `sortvar' `addscalar' modelno {
+			cap gen `var'=.
 			}
 		gen parm=""
 		gen name=""
@@ -131,9 +143,9 @@ program define speccurve
 						}
 					}
 				if `controlpanelno'!=0 loc colnames: colnames e(b)
-				else if "`addplot'"!="" loc colnames `param' `paramaddplot'
+				else if "`addcoef'"!="" loc colnames `param' `paramaddcoef'
 				else loc colnames `param'
-				savecoefs `colnames', level(`level') scalars(`panelvars' `sortvar')
+				savecoefs `colnames', level(`level') scalars(`panelvars' `sortvar' `addscalar')
 				replace modelno=`i' if modelno==.
 				replace name="`modname'" if name==""
 				}
@@ -157,9 +169,9 @@ program define speccurve
 				loc ++i
 				est restore `est'
 				if `controlpanelno'!=0 loc colnames: colnames e(b)
-				else if "`addplot'"!=""&"`samemodel'"!="" loc colnames `param' `paramaddplot'
+				else if "`addcoef'"!=""&"`samemodel'"!="" loc colnames `param' `paramaddcoef'
 				else loc colnames `param'
-				savecoefs `colnames', level(`level') scalars(`panelvars' `sortvar')
+				savecoefs `colnames', level(`level') scalars(`panelvars' `sortvar' `addscalar')
 				replace name="`est'" if name==""
 				replace modelno=`i' if modelno==.
 				}
@@ -173,15 +185,14 @@ program define speccurve
 		if `controlpanelno'!=0 {
 			
 			if "`samemodel'"=="" levelsof parm if parm!="`param'", local(parmlist) clean
-			else levelsof parm if parm!="`param'"&parm!="`paramaddplot'", local(parmlist) clean
+			else levelsof parm if parm!="`param'"&parm!="`paramaddcoef'", local(parmlist) clean
 			gen byte `bin'=.
 			loc c=0
 			foreach parm in `parmlist' {
 					loc ++c
 					replace `bin'=parm=="`parm'"
-					tempname c`c'
-					bys name: egen `c`c''=max(`bin')
-					loc panelvars`controlpanelno' `panelvars`controlpanelno'' `c`c''
+					bys name: egen `parm'=max(`bin')
+					loc panelvars`controlpanelno' `panelvars`controlpanelno'' `parm'
 					}
 			local numvars`controlpanelno': word count `panelvars`controlpanelno''
 			if "`controltitle"!="" loc title`controlpanelno' `controltitle'
@@ -192,33 +203,33 @@ program define speccurve
 			
 			}
 		
-		if "`samemodel'"!="" keep if inlist(parm,"`param'","`paramaddplot'")
+		if "`samemodel'"!="" keep if inlist(parm,"`param'","`paramaddcoef'")
 		else keep if parm=="`param'"
 		
-		//addplot option
-		if "`addplot'"!="" {
+		//addcoef option
+		if "`addcoef'"!="" {
 			if "`samemodel'"=="" {
-					if "`addplotusing'"!="" { //when taking addplot estimates from file
-					cap estimates describe using `addplotusing'
+					if "`addcoefusing'"!="" { //when taking addcoef estimates from file
+					cap estimates describe using `addcoefusing'
 					if _rc!=0 {
-						noi di in red "Using file `addplotusing'.ster not found."
+						noi di in red "Using file `addcoefusing'.ster not found."
 						exit 301
 						}
 					forvalues i=1/`=r(nestresults)' {
-						estimates use `addplotusing', number(`i')
+						estimates use `addcoefusing', number(`i')
 						loc modname `e(estimates_title)'
-						if "`namelistaddplot'"!="" {
+						if "`namelistaddcoef'"!="" {
 							loc numwordstitle: word count `e(estimates_title)'
 							if `numwordstitle'>1 {
 								noi di in red "Use only one-word names for estimates titles when storing them on disk and specifying namelist. Estimate `modname' contains more than one word."
 								exit 301
 								}
 							}
-						savecoefs `paramaddplot', level(`level')
+						savecoefs `paramaddcoef', level(`level')
 						replace modelno=`i' if modelno==.
 						replace name="`modname'" if name==""
 						}
-					if "`namelistaddplot'"!="" {
+					if "`namelistaddcoef'"!="" {
 						gen `keepvar'=0
 						foreach okname in `anything' {
 							replace `keepvar'=1 if strmatch(name,"`okname'")==1
@@ -230,23 +241,22 @@ program define speccurve
 				}
 			
 				else { //when taking estimates from memory
-					est dir `namelistaddplot'
-					loc namelistaddplot `=r(names)'
+					est dir `namelistaddcoef'
+					loc namelistaddcoef `=r(names)'
 					loc i=0
-					foreach est in `namelistaddplot' {
+					foreach est in `namelistaddcoef' {
 						loc ++i
 						est restore `est'
-						savecoefs `paramaddplot', level(`level')
+						savecoefs `paramaddcoef', level(`level')
 						replace name="`est'" if name==""
 						replace modelno=`i' if modelno==.
 						}
 					}
 				}
 		
-		save tmp, replace
-		keep if inlist(parm,"`param'","`paramaddplot'")
+		keep if inlist(parm,"`param'","`paramaddcoef'")
 		gen n=1 if parm=="`param'"
-		replace n=2 if parm=="`paramaddplot'"
+		replace n=2 if parm=="`paramaddcoef'"
 		keep min* max* estimate modelno name n parm `panelvars' `sortvar' `panelvars`controlpanelno''
 		reshape wide estimate min* max* parm name `panelvars' `sortvar' `panelvars`controlpanelno'', i(modelno) j(n)
 		foreach var in name `panelvars' `sortvar' `panelvars`controlpanelno'' {
@@ -312,7 +322,7 @@ program define speccurve
 		
 		//Determine appropriate scatter symbol size
 		loc msize `=4.5/`Nspec''
-		loc labsize `=7/`Nspec''in
+		loc labsize `=min(`=7/`Nspec'',0.25)'in
 		
 		//Determine appropriate text size
 		loc cols=`numlevel'+1
@@ -320,7 +330,7 @@ program define speccurve
 			loc ++cols
 			loc notifmain if name!="`main'"
 			loc scattermain (scatter estimate `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
-			if "`addplot'"!="" loc scattermain_a (scatter estimate_a `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
+			if "`addcoef'"!="" loc scattermain_a (scatter estimate_a `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
 			loc labmain label(`=`numlevel'+2' "main")
 			loc mainorder=`numlevel'+2
 			}
@@ -328,9 +338,14 @@ program define speccurve
 		su min`level`numlevel''
 		loc ymin=r(min)
 		
-		if "`addplot'"!="" {
+		if "`addcoef'"!="" {
 			su min`level`numlevel''_a
 			loc ymin_a=r(min)
+			}
+		
+		if "`addscalar'"!="" {
+			su `addscalar'
+			loc minscalar=r(min)
 			}
 		
 		if `numlevel'==2 loc orderci 1 2
@@ -342,13 +357,15 @@ program define speccurve
 				foreach i in `labels`pan'' {
 					loc phantomlabs `phantomlabs' `ymin'  "`i'"
 					loc phantomlabsscat `phantomlabsscat' 1 "`i'"
-					if "`addplot'"!="" loc phantomlabs_a `phantomlabs_a' `ymin_a'  "`i'"
+					if "`addcoef'"!="" loc phantomlabs_a `phantomlabs_a' `ymin_a'  "`i'"
+					if "`addscalar'"!="" loc phantomlabs_s `phantomlabs_s' `minscalar'  "`i'"
 					}
 				}
 			
 			
 			loc extraylabs ylabel(`phantomlabs', add custom  labcolor(white%0) labsize(`labsize') angle(horizontal) tlcolor(white%0))
-			if "`addplot'"!="" loc extraylabs_a ylabel(`phantomlabs_a', add custom  labcolor(white%0) labsize(`labsize') angle(horizontal) tlcolor(white%0))
+			if "`addcoef'"!="" loc extraylabs_a ylabel(`phantomlabs_a', add custom  labcolor(white%0) labsize(`labsize') angle(horizontal) tlcolor(white%0))
+			if "`addscalar'"!="" loc extraylabs_s ylabel(`phantomlabs_s', add custom  labcolor(white%0) labsize(`labsize') angle(horizontal) tlcolor(white%0))
 			loc extraylabsscat ylabel(`phantomlabsscat', add custom  labcolor(white%0) labsize(`labsize') angle(horizontal) tlcolor(white%0))	
 			}
 		
@@ -356,9 +373,10 @@ program define speccurve
 		loc i=0
 		foreach level in `level' {
 			loc ++i
-			loc rbars (rbar min`level`i'' max`level`i'' `spec', color(gs`=10+2*`i''%50) lwidth(none)) `rbars'
-			if "`addplot'"!=""	loc rbarsaddplot (rbar min`level`i''_a max`level`i''_a `spec', color(gs`=10+2*`i''%50) lwidth(none)) `rbarsaddplot'
-			loc labels label(`i' "`level`i''% CI") `labels' 
+			loc rbars  (rbar min`level`i'' max`level`i'' `spec', color(gs`=10+2*`i'') lwidth(none)) `rbars'
+			if "`addcoef'"!=""	loc rbarsaddcoef (rbar min`level`i''_a max`level`i''_a `spec', color(gs`=10+2*`i'') lwidth(none)) `rbarsaddcoef'
+			loc labels `labels'  label(`i' "`level`i''% CI")
+			loc varnamesci `varnamesci' min`level' max`level'
 			}
 		
 		//Determine relative sizes of panels
@@ -372,32 +390,40 @@ program define speccurve
 				loc ysize=`ysize'+`ysize`pan''
 				}
 			}
-		if "`addplot'"!="" {
-			if "`addplottitle'"!="" loc ysizeaddplot =4.3
-			else loc ysizeaddplot=4
-			loc ysize=`ysize'+`ysizeaddplot'
+		if "`addcoef'"!="" {
+			if "`addcoeftitle'"!="" loc ysizeaddcoef =4.3
+			else loc ysizeaddcoef=4
+			loc ysize=`ysize'+`ysizeaddcoef'
+			}
+		
+		if "`addscalar'"!="" {
+			if "`addscalartitle'"=="" loc ysizeaddscalar=4
+			else loc ysizeaddscalar=4.3
+			loc ysize=`ysize'+`ysizeaddscalar'
 			}
 			
 		//Plot estimates
-		if `numpanels'>0|"`addplot'"!="" {
+		if `numpanels'>0|"`addcoef'"!=""|"`addscalar'"!="" {
 			loc nodraw nodraw
 			loc coefname `coefs'
 			loc margins 0 0 0 0
 			}
 		else loc coefname speccurve
 		
-		
-		twoway 	`rbars' (scatter estimate `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain' ///
+		twoway 	`rbars' (scatter estimate `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain'  ///
 				, name(`coefname', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
 				xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
-				title(`title', size(0.3in)) ylabel(#6,  nogrid) ytitle("") ///
+				title(`title', size(0.3in)) ylabel(#6,  nogrid) ytitle("coefficient on `param'") ///
 				`extraylabs' `nodraw'    plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(`margins')) ///
 				yline(0, lpattern(dash)) fysize(`=150*`ysizemain'/`ysize'')  legend(`labels' label(`=`numlevel'+1' "estimates") `labmain' cols(`cols') order(`mainorder' `=`numlevel'+1' `orderci') position(5) ring(0))  `graphopts'
 				
 		
 		//plot specification panel(s) + control panel
 		if `numpanels'>0 {
-			
+		
+			if strpos("`graphopts'","ytitle("")")>0&strpos("`addcoefgraphopts'","ytitle("")")>0&strpos("`addscalargraphopts'","ytitle("")")>0 loc pad
+			else loc pad pad
+				
 			loc j=0
 			forvalues pan=1/`numpanels' {
 				
@@ -438,7 +464,7 @@ program define speccurve
 						scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) yscale(range(0.5 `=`numvars`pan''+0.5')) ///
 						xlabel(none) xtitle("") legend(off) title(`title`pan'', size(0.3in))  ///
 						plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(0 0 0 0)) ///
-						graphregion(color(white)) plotregion(lcolor(black)) yscale(range(0.5 `=`numvars`pan''+0.5')) name(`plot`pan'', replace) fysize(`=150*`ysize`pan''/`ysize'') ysize(`ysize`pan'')ytitle("") `graphopts`pan''
+						graphregion(color(white)) plotregion(lcolor(black)) yscale(range(0.5 `=`numvars`pan''+0.5')) name(`plot`pan'', replace) fysize(`=150*`ysize`pan''/`ysize'') ysize(`ysize`pan'') ytitle("`pad'", color(white%0) ) `graphopts`pan''
 				
 				loc scatters `scatters' `plot`pan'' 
 			}
@@ -446,22 +472,39 @@ program define speccurve
 		
 		}
 		
-		//Plot additional coefficients from addplot()
-		if "`addplot'"!="" {
-				tempname addlplots
-			
-				twoway 	`rbarsaddplot' (scatter estimate_a `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain_a' ///
-				, name(`addlplots', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
-				title(`addplottitle', size(0.3in)) xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
-				 ylabel(#6,  nogrid) ytitle("") plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(0 0 0 0)) ///
+		//Plot additional coefficients or scalars from addcoef() or addscalar(
+		if "`addcoef'"!="" {
+				tempname addcoef1
+				twoway 	`rbarsaddcoef' (scatter estimate_a `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain_a' ///
+				, name(`addcoef1', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
+				title(`addcoeftitle', size(0.3in)) xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
+				 ylabel(#6,  nogrid) ytitle("coefficient on `paramaddcoef'") plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(0 0 0 0)) ///
 				`extraylabs_a' `nodraw'  ///
-				yline(0, lpattern(dash)) legend(off) fysize(`=150*`ysizeaddplot'/`ysize'') `graphopts'
+				yline(0, lpattern(dash)) legend(off) fysize(`=150*`ysizeaddcoef'/`ysize'') `addcoefraphopts'
 			}
 		
-		if `numpanels'>0|"`addplot'"!="" graph combine `coefs' `scatters' `addlplots', cols(1) graphregion(color(white)) imargin(0 0 0 0) ysize(`ysize') name(speccurve, replace)
+		if "`addscalar'"!="" {
+				tempname addscalar1
+				if "`main'"!="" loc scattermain_s (scatter `addscalar' `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
+				twoway 	(scatter `addscalar' `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain_s' ///
+				, name(`addscalar1', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
+				title(`addscalartitle', size(0.3in)) xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
+				 ylabel(#6,  nogrid) ytitle("`addscalar'") plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(0 0 0 0)) `nodraw'  ///
+				yline(0, lpattern(dash)) legend(off) fysize(`=150*`ysizeaddscalar'/`ysize'') `addscalargraphopts' `extraylabs_s'
+			}
+		
+		if `numpanels'>0|"`addcoef'"!=""|"`addscalar'"!="" graph combine `coefs' `scatters' `addcoef1' `addscalar1', cols(1) graphregion(color(white)) imargin(0 0 0 0) ysize(`ysize') name(speccurve, replace)
+	
+	
+
+	//Add resulting table to r(table)
+	rename `spec' specno
+	tempname table
+	mkmat specno modelno estimate `varnamesci' `panelvars' `panelvars`controlpanelno'' `addscalar', matrix(`table') rownames(name)
+	return matrix table=`table'
 	
 	}
-
+	
 end
 
 	
@@ -472,7 +515,7 @@ program panelparse, sclass
 	loc numvars: word count `namelist'
 	sret local numvars=`numvars'
 	sret local panelvars `namelist'
-	while "`labels'"!="" {
+	while `"`labels'"'!="" {
 		gettoken lab labels: labels
 		loc labs `labs' `lab'
 		gettoken name namelist: namelist
@@ -487,14 +530,14 @@ program panelparse, sclass
 	sret local graphopts `graphopts'
 end
 
-//addplotparse
+//addcoefparse
 
-program addplotparse, sclass
-	syntax [anything] [using/], param(name) [title(string) graphopts(string)]
+program addcoefparse, sclass
+	syntax [anything] [using/], param(name) [title(string) graphopts(string) scalar(name)]
 	if strpos("`anything'","samemodel")>0 {
 		loc numnames: word count `anything'
 		if `numnames'>1 {
-			noi di in red "When specifying samemodel in addplot(), do not specify a namelist - addplot() coefficients are `param' from main model."
+			noi di in red "When specifying samemodel in addcoef(), do not specify a namelist - addcoef() coefficients are `param' from main models."
 			exit 301 
 			}
 		loc namelist
@@ -506,8 +549,20 @@ program addplotparse, sclass
 	sret local graphopts `graphopts'
 	sret local samemodel `samemodel'
 	sret local using `using'
+	sret local scalar `scalar'
 
 end
+
+//addscalarparse
+
+program addscalarparse, sclass
+	syntax name, [title(string) graphopts(string)]
+	foreach str in namelist title graphopts {
+		sret local `str' ``str''
+		}
+
+end
+
 
 
 //savecoefs
