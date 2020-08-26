@@ -96,8 +96,9 @@
 	{pstd}
 	First estimate your model using any e-class command that stores b and V in e(). If you want to use custom specification panels, you need to store 
 	scalars with the estimates indicating the details of the specification using estadd. As an example, add a scalar indicating that the "foreign" 
-	subsample was used by specifying estadd scalar "foreign=1" or add the numeber of the polynomial of some control using "estadd scalar polynomial=2".
-	estadd is part of the estout package, see ssc -install estout-. If you are comparing estiamtes using different functional forms, you may wish to compute marginal effects using -margins, dydx(*) post- to store the marginal effects in e() before running speccurve.{p_end}
+	subsample was used by specifying estadd scalar "foreign=1" or add the number of the polynomial of some control using "estadd scalar polynomial=2".
+	estadd is part of the estout package, see ssc -install estout-. If you are comparing estiamtes using different functional forms, 
+	you may wish to compute marginal effects using -margins, dydx(*) post- to store the marginal effects in e() before running speccurve.{p_end}
 	
 	{pstd}
 	After all details of the specification is added to the estimate, either store the estimate using "eststo name", or add a title and save the estimate 
@@ -120,7 +121,9 @@
 	Estimate a bunch of (arguably silly) models to use for examples. Load auto data and estimate 128 regressions of price on weight, controlling for all combinations 
 	of mpg, headroom, trunk, gear_ratio, length, turn and displacement. Store these in
 	memory, calling them ols1-ols128. Also estimate 48 2SLS models of price on weight with various controls, using length as an instrument for weight, and store these in 
-	estiv.ster, and the associated first stage regressions, storing them in estfs.ster. Finally estimate linear probability, logit and probit models of the probability that a car is foreign based on weight and various controls, store these in estmod.ster. {p_end}
+	estiv.ster, and the associated first stage regressions, storing them in estfs.ster. 
+	Finally estimate linear probability, logit and probit models of the probability that a car is foreign based on weight
+	and various controls, store these in estmod.ster. {p_end}
 
 	{phang2}({stata "speccurve_gendata":{it:click to run})}{p_end}
 
