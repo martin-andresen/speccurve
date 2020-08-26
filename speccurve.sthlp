@@ -113,6 +113,17 @@
 	{pstd}
 	After doing this for all your specifications, you are ready to plot specification curves.{p_end}
 	
+	{marker confint}{...}
+	{title:An note on confidence intervals}
+	
+	{pstd}
+	Speccurve plots pointwise confidence intervals, meaning confidence intervals on the parameter of interest estimated for 
+	each model separately. This is in line with what is typically reported in robustness tables and figures. Note, however,
+	that when formally testing the hypothesis that a coefficient from an alternative model is different from the coefficient from
+	the baseline model, correct inference requires the models to be estimated simultaneously rather than simply comparing whether
+	the pointwise confidence intervals overlap. Speccurve is purely a plotting tool and so does not estimate the models, 
+	 but users are encouraged to estimate models simultaneously when formally testing hypotheses.
+
 	
 	{marker examples}{...}
 	{title:Examples}
@@ -154,6 +165,16 @@
 	{phang2}{cmd:. speccurve using estiv, param(weight) main(iv1) keep(20 20 20) controls addcoef(using estfs, param(length) graphopts(ytitle(first stage estimates))) graphopts(ytitle(IV estimates))} {p_end}
 	{phang2}({stata "speccurve using estiv, param(weight) main(iv1) keep(20 20 20) controls addcoef(using estfs, param(length) graphopts(ytitle(first stage estimates))) graphopts(ytitle(IV estimates))":{it:click to run}}) {p_end}
 
+	
+	{marker saved_results}{...}
+	{title:Stored results}
+
+	{pstd}
+	{cmd:speccurve} stores the following in {cmd:r()}:
+
+	{synoptset 20 tabbed}{...}
+	{synopt:{cmd:r(table)}}Matrix of plotted data{p_end}
+
 	{marker Author}{...}
 	{title:Author}
 
@@ -165,5 +186,7 @@
 
 	{marker Thanks}{...}
 	{title:Thanks to}
-	{pstd}Uri Simonsohn, Joseph Simmons and Leif D. Nelson for their paper "Specification Curve: Descriptive and Inferential Statistics on All Reasonable Specifications", first (?) suggesting the specification curve.{p_end}
+	{pstd}Uri Simonsohn, Joseph Simmons and Leif D. Nelson for their paper "Specification Curve Analysis" 
+	(Nat Hum Behav, 2020, and previous working paper), first (?) suggesting the specification curve.{p_end}
+	
 	{pstd}Hans H. Sievertsen for posting a graph that inspired this program on {browse "twitter.com/hhsievertsen/status/1188780383736909825":Twitter} {p_end}
