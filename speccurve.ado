@@ -373,7 +373,7 @@ program define speccurve
 		forvalues i=`numlevel'(-1)1 {
 			loc ++j
 			loc rbars `rbars' (rbar min`level`i'' max`level`i'' `spec', color(gs`=10+2*`i''%50) lwidth(none)) 
-			if "`addcoef'"!=""	loc rbarsaddcoef (rbar min`level`i''_a max`level`i''_a `spec', color(gs`=10+-2*`i''%50) lwidth(none)) `rbarsaddcoef'
+			if "`addcoef'"!=""	loc rbarsaddcoef (rbar min`level`i''_a max`level`i''_a `spec', color(gs`=10+2*`i''%50) lwidth(none)) `rbarsaddcoef'
 			loc labels `labels'  label(`j' "`level`i''% CI")
 			loc varnamesci `varnamesci' min`level`i'' max`level`i''
 			}
