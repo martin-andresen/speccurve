@@ -479,7 +479,7 @@ program define speccurve
 				title(`addcoeftitle', size(0.3in)) xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
 				 ylabel(#6,  nogrid) ytitle("coefficient on `paramaddcoef'") plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(0 0 0 0)) ///
 				`extraylabs_a' `nodraw'  ///
-				yline(0, lpattern(dash)) legend(off) fysize(`=150*`ysizeaddcoef'/`ysize'') `addcoefraphopts'
+				yline(0, lpattern(dash)) legend(off) fysize(`=150*`ysizeaddcoef'/`ysize'') `addcoefgraphopts'
 			}
 		
 		if "`addscalar'"!="" {
