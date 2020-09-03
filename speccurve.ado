@@ -1,4 +1,4 @@
-*! speccurve v1.1, 26082020
+*! speccurve v1.11, 20200903
 * Author: Martin Eckhoff Andresen
 
 cap program drop speccurve panelparse speccurverun sortpreserve addcoefparse savecoefs
@@ -46,7 +46,7 @@ program define speccurve
 	program define speccurverun, rclass
 		version 15.0
 		
-		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 ascending integer >0 <100) title(string) sort(name) save(name) fill addscalar(string)]
+		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) sort(name) save(name) fill addscalar(string)]
 		
 		
 		qui {
@@ -369,14 +369,13 @@ program define speccurve
 			loc extraylabsscat ylabel(`phantomlabsscat', add custom  labcolor(white%0) labsize(`labsize') angle(horizontal) tlcolor(white%0))	
 			}
 		
-
-		loc i=0
-		foreach level in `level' {
-			loc ++i
-			loc rbars  (rbar min`level`i'' max`level`i'' `spec', color(gs`=10+2*`i'') lwidth(none)) `rbars'
-			if "`addcoef'"!=""	loc rbarsaddcoef (rbar min`level`i''_a max`level`i''_a `spec', color(gs`=10+2*`i'') lwidth(none)) `rbarsaddcoef'
-			loc labels `labels'  label(`i' "`level`i''% CI")
-			loc varnamesci `varnamesci' min`level' max`level'
+		loc j=0
+		forvalues i=`numlevel'(-1)1 {
+			loc ++j
+			loc rbars `rbars' (rbar min`level`i'' max`level`i'' `spec', color(gs`=10+2*`i''%50) lwidth(none)) 
+			if "`addcoef'"!=""	loc rbarsaddcoef (rbar min`level`i''_a max`level`i''_a `spec', color(gs`=10+-2*`i''%50) lwidth(none)) `rbarsaddcoef'
+			loc labels `labels'  label(`j' "`level`i''% CI")
+			loc varnamesci `varnamesci' min`level`i'' max`level`i''
 			}
 		
 		//Determine relative sizes of panels
@@ -567,7 +566,7 @@ end
 
 //savecoefs
 program savecoefs
-syntax [namelist], level(numlist min=1 max=2 ascending integer >0 <100) [scalars(namelist)] 
+syntax [namelist], level(numlist min=1 max=2 integer >0 <100) [scalars(namelist)] 
 	loc k=0
 	foreach lev in `level' {
 		loc ++k
