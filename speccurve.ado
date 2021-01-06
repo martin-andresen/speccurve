@@ -24,7 +24,7 @@ program define speccurve
 				gettoken tok content: content, parse(" ") bind
 				if substr("`tok'",1,6)=="labels" loc controllabels `=substr("`tok'",8,`=strlen("`tok'")-8')'
 				else if substr("`tok'",1,5)=="title" loc controltitle `=substr("`tok'",7,`=strlen("`tok'")-7')'
-				else if substr("`tok'",1,10)=="graphopts" loc controlgraphopts `=substr("`tok'",12,`=strlen("`tok'")-12')'
+				else if substr("`tok'",1,9)=="graphopts" loc controlgraphopts `=substr("`tok'",11,`=strlen("`tok'")-11')'
 				else {
 					noi di in red "Suboption `tok' not allowed in controls()."
 					exit 301
