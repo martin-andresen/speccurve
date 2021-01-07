@@ -1,4 +1,4 @@
-*! speccurve v1.11, 20200903
+*! speccurve v1.12, 20210106
 * Author: Martin Eckhoff Andresen
 
 cap program drop speccurve panelparse speccurverun sortpreserve addcoefparse savecoefs
