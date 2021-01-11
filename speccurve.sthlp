@@ -86,6 +86,8 @@
 	spacing and alignment. Panel() and controls() also allows labels(), where the user can specify alternative one-word labels for each entry in the panel
 	that appear on the y axis.{p_end}
 
+	{pstd}Main() also allows the suboption graphopts(), which can similarly be used specify {helpb twoway_options} modifying its style.
+
 	{marker preparation}{...}
 	{title:Saving or storing your models before using speccurve}
 

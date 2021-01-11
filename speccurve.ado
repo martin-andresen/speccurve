@@ -1,4 +1,4 @@
-*! speccurve v1.12, 20210106
+*! speccurve v1.13, 20210107
 * Author: Martin Eckhoff Andresen
 
 cap program drop speccurve panelparse speccurverun sortpreserve addcoefparse savecoefs
@@ -75,11 +75,9 @@ program define speccurve
 			
 			//control main opt
 			if "`main'"!="" {
-				loc nummain: word count `main'
-				if `nummain'>1 {
-					noi di in red "Specify only one word or number in main(), corresponding to the name or number of the main specification."
-					exit 301
-					}
+				mainparse `main'
+				loc mainspec `s(mainspec)'
+				loc maingraphopts `s(graphopts)'
 				}
 			
 			//levels option
@@ -296,7 +294,7 @@ program define speccurve
 			else {
 				tempvar dum run
 				gen `r'=runiform()
-				gen `dum'=name=="`main'"
+				gen `dum'=name=="`mainspec'"
 				sort `dum' `spec'
 				bys `dum': gen `run'=_n
 				gen `keepvar'=(`dum'==1|`run'<=`keep1'|`run'>=_N-`keep3')
@@ -307,15 +305,15 @@ program define speccurve
 				replace `spec'=_n
 				su `spec'
 				loc Nspec=_N
-				if "`main'"!="" {
-					su `spec' if name=="`main'"
+				if "`mainspec'"!="" {
+					su `spec' if name=="`mainspec'"
 					if r(mean)<=`=`keep1'+`keep2'' {
 						loc xline2=`keep1'+`keep2'+1.5
 						if r(mean)<=`keep1' loc xline1=`keep1'+1.5
 						}
 					}
-				if "`main'"==""|"`xline1'"=="" loc xline1=`keep1'+0.5
-				if "`main'"==""|"`xline2'"=="" loc xline2=`Nspec'-`keep3'+0.5
+				if "`mainspec'"==""|"`xline1'"=="" loc xline1=`keep1'+0.5
+				if "`mainspec'"==""|"`xline2'"=="" loc xline2=`Nspec'-`keep3'+0.5
 				loc xlines xline(`xline1', lpattern(dot)) xline(`xline2', lpattern(dot))
 				}
 			}
@@ -326,11 +324,11 @@ program define speccurve
 		
 		//Determine appropriate text size
 		loc cols=`numlevel'+1
-		if "`main'"!="" {
+		if "`mainspec'"!="" {
 			loc ++cols
-			loc notifmain if name!="`main'"
-			loc scattermain (scatter estimate `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
-			if "`addcoef'"!="" loc scattermain_a (scatter estimate_a `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
+			loc notifmain if name!="`mainspec'"
+			loc scattermain (scatter estimate `spec' if name=="`mainspec'", mcolor(maroon) msize(`msize'in) msymbol(diamond) `maingraphopts')
+			if "`addcoef'"!="" loc scattermain_a (scatter estimate_a `spec' if name=="`mainspec'", mcolor(maroon) msize(`msize'in) msymbol(diamond)`maingraphopts') 
 			loc labmain label(`=`numlevel'+2' "main")
 			loc mainorder=`numlevel'+2
 			}
@@ -408,7 +406,6 @@ program define speccurve
 			loc margins 0 0 0 0
 			}
 		else loc coefname speccurve
-		
 		twoway 	`rbars' (scatter estimate `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain'  ///
 				, name(`coefname', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
 				xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
@@ -419,7 +416,6 @@ program define speccurve
 		
 		//plot specification panel(s) + control panel
 		if `numpanels'>0 {
-		
 			if strpos("`graphopts'","ytitle("")")>0&strpos("`addcoefgraphopts'","ytitle("")")>0&strpos("`addscalargraphopts'","ytitle("")")>0 loc pad
 			else loc pad pad
 				
@@ -447,14 +443,14 @@ program define speccurve
 						}
 					if "`fill'"!="" loc fillstr |`i'==.
 					if (`bin'==2&`vals'==2)|(`bin'==1&`vals'==1) { //plot scatters with dots
-						loc two `two' (scatter y`j' `spec' if `i'==1&name!="`main'", msymbol(circle) mcolor(black) msize(`msize'in) mlwidth(vthin)) ///
-						(scatter y`j' `spec' if `i'==0`fillstr'&name!="`main'", msymbol(circle_hollow) mlcolor(gs0) mcolor(white) msize(`msize'in) mlwidth(vthin)) ///
-						(scatter y`j' `spec' if `i'==1&name=="`main'", msymbol(circle) mcolor(maroon) msize(`msize'in) mlwidth(vthin)) ///
-						(scatter y`j' `spec' if `i'==0`fillstr'&name=="`main'", msymbol(circle_hollow) mlcolor(maroon) mcolor(white) msize(`msize'in) mlwidth(vthin))
+						loc two `two' (scatter y`j' `spec' if `i'==1&name!="`mainspec'", msymbol(circle) mcolor(black) msize(`msize'in) mlwidth(vthin)) ///
+						(scatter y`j' `spec' if `i'==0`fillstr'&name!="`mainspec'", msymbol(circle_hollow) mlcolor(gs0) mcolor(white) msize(`msize'in) mlwidth(vthin)) ///
+						(scatter y`j' `spec' if `i'==1&name=="`mainspec'", msymbol(circle) mcolor(maroon) msize(`msize'in) mlwidth(vthin)) ///
+						(scatter y`j' `spec' if `i'==0`fillstr'&name=="`mainspec'", msymbol(circle_hollow) mlcolor(maroon) mcolor(white) msize(`msize'in) mlwidth(vthin))
 						}
 					else { //plot scatters with numbers/values
-						loc two `two' 	(scatter y`j' `spec' if name!="`main'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabsize(`msize'in)) ///
-										(scatter y`j' `spec' if name=="`main'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabcolor(maroon) mlabsize(`msize'in)) 
+						loc two `two' 	(scatter y`j' `spec' if name!="`mainspec'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabsize(`msize'in)) ///
+										(scatter y`j' `spec' if name=="`mainspec'"&`i'!=., mlabel(`i') mlabpos(0) msymbol(i) mlabcolor(maroon) mlabsize(`msize'in)) 
 						}
 					}
 				
@@ -484,7 +480,7 @@ program define speccurve
 		
 		if "`addscalar'"!="" {
 				tempname addscalar1
-				if "`main'"!="" loc scattermain_s (scatter `addscalar' `spec' if name=="`main'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
+				if "`mainspec'"!="" loc scattermain_s (scatter `addscalar' `spec' if name=="`mainspec'", mcolor(maroon) msize(`msize'in) msymbol(diamond))
 				twoway 	(scatter `addscalar' `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain_s' ///
 				, name(`addscalar1', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
 				title(`addscalartitle', size(0.3in)) xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
@@ -526,6 +522,19 @@ program panelparse, sclass
 	sret local labels `labs'
 	sret local title `title'
 
+	sret local graphopts `graphopts'
+end
+
+//mainparse
+
+program mainparse, sclass
+	syntax namelist, [graphopts(string)]
+	loc nummain: word count `namelist'
+	if `nummain'>1 {
+		noi di in red "Specify only one word or number in main(), corresponding to the name or number of the main specification."
+		exit 301
+	}
+	sret local mainspec `namelist'
 	sret local graphopts `graphopts'
 end
 
