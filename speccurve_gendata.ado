@@ -9,7 +9,7 @@ cap program drop speccurve_gendata
 	
 	cap which estadd
 	if _rc!=0 {
-		di in red "You need the estout package to add scalars to stored estimates, see -ssc install estadd-."
+		di in red "You need the estout package to add scalars to stored estimates, see -ssc install estout-."
 		exit 301
 		}
 	clear all
