@@ -16,9 +16,10 @@
 	{cmd:speccurve} [namelist] [using] {cmd:,} param(name) [main(name) panel(namelist, {it:panel_opts}) controls[({it:panel_opts})] addplot([namelist] 
 					[samemodel] [using], param(name) {it:panel_opts}) level(numlist) keep(numlist) sort(name|none) fill graphopts(string) title(string) save(name)]
 
-	{synoptset 30}{...}
-	{synopthdr:options}
-	{synoptline}
+{synoptset 25 tabbed}{...}
+{synopthdr}
+{synoptline}
+{syntab:Main}
 	{synopt:{opt param(name)}} exact name of the coefficient of interest.{p_end}
 	{synopt:{opt main(name)}} name of the main specification, which will be marked in the figure.{p_end}
 	{synopt:{opt panel(namelist, [panel_opts])}} specification of a panel of characteristics for each estimate, 
@@ -39,9 +40,15 @@
 	{synopt:{opt title}} specifies the title of the main coefficient panel.{p_end}
 	{synopt:{opt fill}} sets missing data for scalars specified in panel to 0.{p_end}
 	{synopt:{opt save(name)}} saves the dataset in {it:name}, replacing any existing file by that name, before plotting and applying keep().{p_end}
+	{synopt:{opt ytitle(string)}} names the main y-axis. Default is "coefficient on <<param>>", where param is the main parameter of interest.{p_end}
 
+	{syntab:panel_opts}
+	{synopt:{opt labels(string)}} one-word labels used for each characteristic in the panel. Default: Name of scalar. {p_end}
+	{synopt:{opt title(string)}} title of panel.{p_end}
+	{synopt:{opt graphopts(string)}} other graph options, parsed directly to the twoway command that draws the panel.{p_end}
 	{synoptline}
 
+	
 	{marker description}{...}
 	{title:Description}
 
@@ -130,14 +137,30 @@
 	{marker examples}{...}
 	{title:Examples}
 
+	{pstd} 
+	Examples models are estimated in speccurve_gendata:
+	
 	{pstd}
 	Estimate a bunch of (arguably silly) models to use for examples. Load auto data and estimate 128 regressions of price on weight, controlling for all combinations 
-	of mpg, headroom, trunk, gear_ratio, length, turn and displacement. Store these in
-	memory, calling them ols1-ols128. Also estimate 48 2SLS models of price on weight with various controls, using length as an instrument for weight, and store these in 
+	of mpg, headroom, trunk, gear_ratio, length, turn and displacement. Store these in 	memory, calling them ols1-ols128. Add a dummy variable indicating the inclusion 
+	of each control, and also a numerical variable indicating the number of control variables used. 
+	
+	{pstd}
+	Estimate the same models again, but absorb fixed effects for rep78 using xtreg. Add a dummy for whether these factor variables was controlled for.
+	
+	{ptsd}
+	Also estimate 48 2SLS models of price on weight with various controls, using length as an instrument for weight, and store these in 
 	estiv.ster, and the associated first stage regressions, storing them in estfs.ster. 
-	Finally estimate linear probability, logit and probit models of the probability that a car is foreign based on weight
+	
+	{ptsd}
+	Estimate linear probability, logit and probit models of the probability that a car is foreign based on weight
 	and various controls, store these in estmod.ster. {p_end}
+	
+	{ptsd}
+	Finally estimate all the linear regressions models separately for foreign and domestic cars, and add a dummy indicating what sample was used.
 
+	{ptsd}
+	
 	{phang2}({stata "speccurve_gendata":{it:click to run})}{p_end}
 
 	{pstd}
@@ -150,10 +173,15 @@
 	{phang2}{cmd:. speccurve, param(weight) controls main(ols1) keep(20 20 20)} {p_end}
 	{phang2}({stata "speccurve, param(weight) controls main(ols1) keep(20 20 20)":{it:click to run}}) {p_end}
 
+	{pstd}
+	Plot a panel indicating just the number of controls instead {p_end}
+	{phang2}{cmd:. speccurve, param(weight) panel(numcontrols) main(ols1)}{p_end}
+	{phang2}({stata "speccurve, param(weight) panel(numcontrols) main(ols1)":{it:click to run}}){p_end}
+
 	
 	{pstd}
 	Use the addcoef() option to plot the values of the control variable length{p_end}
-	{phang2}{cmd:. speccurve, param(weight) main(ols1) keep(20 20 20) controls addcoef(samemodel, param(length)} {p_end}
+	{phang2}{cmd:. speccurve, param(weight) main(ols1) keep(20 20 20) controls addcoef(samemodel, param(length))} {p_end}
 	{phang2}({stata "speccurve, param(weight) main(ols1) keep(20 20 20) controls addcoef(samemodel, param(length))":{it:click to run}}) {p_end}
 	
 	{pstd}
@@ -167,6 +195,21 @@
 	{phang2}{cmd:. speccurve using estiv, param(weight) main(iv1) keep(20 20 20) controls addcoef(using estfs, param(length) graphopts(ytitle(first stage estimates))) graphopts(ytitle(IV estimates))} {p_end}
 	{phang2}({stata "speccurve using estiv, param(weight) main(iv1) keep(20 20 20) controls addcoef(using estfs, param(length) graphopts(ytitle(first stage estimates))) graphopts(ytitle(IV estimates))":{it:click to run}}) {p_end}
 
+	{pstd}
+	Plot the marginal effects of weight on the probability that a car is foreign from linera probability, logit and probit models with various controls, from estmod.ster:{p_end}
+	{phang2}{cmd:. 	speccurve using estmod, param(weight) controls panel(lpm logit probit)} {p_end}
+	{phang2}({stata "speccurve using estmod, param(weight) controls panel(lpm logit probit)":{it:click to run}}) {p_end}
+
+
+	{pstd}
+	Plot results of fixed effects models, adding a panel that indicates the inclusion of fixed effects:{p_end}
+	{phang2}{cmd:. 	speccurve ols* fe*, param(weight) controls panel(i_rep78) keep(20 20 20)} {p_end}
+	{phang2}({stata "speccurve ols* fe*, param(weight) controls panel(i_rep78) keep(20 20 20)":{it:click to run}}) {p_end}
+
+	{pstd}
+	Plot results subgroup specific models (foreign vs domestic cars vs. both), adding a panel that indicates the subgroup:{p_end}
+	{phang2}{cmd:. 	speccurve using subgroups, param(weight) panel(foreign domestic,title(subgroup)) controls(title(subgroup)) keep(20 20 20)} {p_end}
+	{phang2}({stata "speccurve using subgroups, param(weight) panel(foreign domestic,title(subgroup)) controls(title(subgroup)) keep(20 20 20)":{it:click to run}}) {p_end}
 	
 	{marker saved_results}{...}
 	{title:Stored results}

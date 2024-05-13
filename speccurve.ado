@@ -1,4 +1,4 @@
-*! speccurve v1.13, 20210107
+*! speccurve v1.2, 20240513
 * Author: Martin Eckhoff Andresen
 
 cap program drop speccurve panelparse speccurverun sortpreserve addcoefparse savecoefs
@@ -17,6 +17,12 @@ program define speccurve
 			loc ++panelno
 			}
 		else if substr("`mac'",1,8)=="controls" {
+			if "`controladded'"!="" {
+				noi di in red "Do not repeat the controls option"
+				exit 301
+			}
+			loc controladded=1
+			
 			loc ++panelno
 			loc controlpanelno=`panelno'
 			if strpos("`mac'","(")>0 loc content `=substr("`mac'",strpos("`mac'","(")+1,`=strlen("`mac'")-strpos("`mac'","(")-1')'
@@ -46,7 +52,7 @@ program define speccurve
 	program define speccurverun, rclass
 		version 15.0
 		
-		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) sort(name) save(name) fill addscalar(string)]
+		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) ytitle(string) sort(name) save(name) fill addscalar(string)]
 		
 		
 		qui {
@@ -73,6 +79,7 @@ program define speccurve
 				loc sortvar `sort'		
 				}
 			
+			if "`ytitle'"=="" loc ytitle coefficient on `param'
 			//control main opt
 			if "`main'"!="" {
 				mainparse `main'
@@ -409,7 +416,7 @@ program define speccurve
 		twoway 	`rbars' (scatter estimate `spec' `notifmain', mcolor(black) msize(`msize'in) msymbol(circle)) `scattermain'  ///
 				, name(`coefname', replace) scheme(s2mono) xscale(range(0.5 `=`Nspec'+0.5')) ///
 				xlabel(none) xtitle("") graphregion(color(white)) plotregion(lcolor(black)) `xlines' ///
-				title(`title', size(0.3in)) ylabel(#6,  nogrid) ytitle("coefficient on `param'") ///
+				title(`title', size(0.3in)) ylabel(#6,  nogrid) ytitle("`ytitle'") ///
 				`extraylabs' `nodraw'    plotregion(margin(0.5 0.5 0.5 0.5)) graphregion(margin(`margins')) ///
 				yline(0, lpattern(dash)) fysize(`=150*`ysizemain'/`ysize'')  legend(`labels' label(`=`numlevel'+1' "estimates") `labmain' cols(`cols') order(`mainorder' `=`numlevel'+1' `orderci') position(5) ring(0))  `graphopts'
 				
