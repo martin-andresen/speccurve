@@ -19,28 +19,22 @@ cap program drop speccurve_gendata
 	cap rm estfs.ster
 	cap rm estmod.ster
 	
-	//OLS
-	tokenize mpg headroom trunk gear_ratio length turn displacement
+	//Linear regression models
 
 	loc no=0
-	qui forvalues mpg=0/1 {
-		forvalues headroom=0/1 {
-			forvalues trunk=0/1 {
-				forvalues gear_ratio=0/1{
-						forvalues length=0/1 { 
-							forvalues turn=0/1 {
-								forvalues displacement=0/1 {
-								loc controls
-								forvalues i=1/7 {
-									if ```i'''==1 loc controls `controls' ``i''
-									}
-									loc ++no
-									reg price weight `controls'
-									estadd scalar no=`no'
-									estadd scalar i_rep78=0
-									loc numc: word count `controls'
-									estadd scalar numcontrols=`numc'
-									eststo ols`no'
+	qui foreach m in "" "mpg" {
+		foreach h in "" "headroom" {
+			foreach t in "" "trunk" {
+				foreach g in "" "gear_ratio" {
+						foreach l in "" "length" { 
+							foreach tu in "" "turn" {
+									foreach r in "" "rep78" "i.rep78" {
+										loc ++no
+										reg price weight `m' `h' `t' `g' `l' `tu' `d' `r'
+										estadd scalar no=`no'
+										loc numc: word count `controls'
+										estadd scalar numcontrols=`numc'
+										eststo ols`no'
 								}
 						}
 					}
@@ -50,38 +44,13 @@ cap program drop speccurve_gendata
 	}
 	
 	
-	//Fixed effecst for rep78
-	tokenize mpg headroom trunk gear_ratio length turn displacement
 
-	loc no=0
-	qui forvalues mpg=0/1 {
-		forvalues headroom=0/1 {
-			forvalues trunk=0/1 {
-				forvalues gear_ratio=0/1{
-						forvalues length=0/1 { 
-							forvalues turn=0/1 {
-								forvalues displacement=0/1 {
-								loc controls
-								forvalues i=1/7 {
-									if ```i'''==1 loc controls `controls' ``i''
-									}
-									loc ++no
-									xtreg price weight `controls', i(rep78) fe
-									estadd scalar no=`no'
-									estadd scalar i_rep78=1
-									loc numc: word count `controls'
-									estadd scalar numcontrols=`numc'
-									eststo fe`no'
-								}
-						}
-					}
-				}
-			}
-		}
-	}
-	//IV
+	//IV models
 	tokenize mpg headroom trunk gear_ratio turn displacement
 
+	cap rm estfs.ster
+	cap rm estiv.ster
+	
 	loc no=0
 	qui forvalues mpg=0/1 {
 		forvalues headroom=0/1 {
@@ -114,8 +83,10 @@ cap program drop speccurve_gendata
 				}
 			}
 			
-	//DISCRETE CHOICE EXAMPLES
+	//Discrete choice models
 	tokenize mpg headroom trunk gear_ratio
+	
+	cap rm estmod.ster
 	
 	loc no=0
 	
