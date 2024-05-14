@@ -52,7 +52,7 @@ program define speccurve
 	program define speccurverun, rclass
 		version 15.0
 		
-		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) ytitle(string) sort(name) save(name) fill addscalar(string)]
+		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) sort(name) save(name) fill addscalar(string)]
 		
 		
 		qui {
@@ -79,7 +79,6 @@ program define speccurve
 				loc sortvar `sort'		
 				}
 			
-			if "`ytitle'"=="" loc ytitle coefficient on `param'
 			//control main opt
 			if "`main'"!="" {
 				mainparse `main'
@@ -189,15 +188,22 @@ program define speccurve
 		//automatic control panel
 		if `controlpanelno'!=0 {
 			
+			replace parm=regexr(parm,"(\d+)\.","i.") if parm!="`param'"&parm!="`paramaddcoef'"
+			replace parm=regexr(parm,"(\d+)b\.","i.") if parm!="`param'"&parm!="`paramaddcoef'"
+			
+			bys name parm: drop if _n>1
+			
 			if "`samemodel'"=="" levelsof parm if parm!="`param'", local(parmlist) clean
 			else levelsof parm if parm!="`param'"&parm!="`paramaddcoef'", local(parmlist) clean
+			
 			gen byte `bin'=.
 			loc c=0
 			foreach parm in `parmlist' {
 					loc ++c
 					replace `bin'=parm=="`parm'"
-					bys name: egen `parm'=max(`bin')
-					loc panelvars`controlpanelno' `panelvars`controlpanelno'' `parm'
+					tempname var`c'
+					bys name: egen `var`c''=max(`bin')
+					loc panelvars`controlpanelno' `panelvars`controlpanelno'' `var`c''
 					}
 			local numvars`controlpanelno': word count `panelvars`controlpanelno''
 			if "`controltitle"!="" loc title`controlpanelno' `controltitle'
@@ -582,7 +588,7 @@ end
 
 //savecoefs
 program savecoefs
-syntax [namelist], level(numlist min=1 max=2 integer >0 <100) [scalars(namelist)] 
+syntax [anything], level(numlist min=1 max=2 integer >0 <100) [scalars(namelist)] 
 	loc k=0
 	foreach lev in `level' {
 		loc ++k
@@ -592,15 +598,15 @@ syntax [namelist], level(numlist min=1 max=2 integer >0 <100) [scalars(namelist)
 		loc level`k'=`lev'
 		}
 		
-if "`namelist'"=="" loc namelist: colnames e(b)
-loc nparms: word count `namelist' 
+if "`anything'"=="" loc anything: colnames e(b)
+loc nparms: word count `anything' 
 loc N=_N
 set obs `=_N+`nparms''
 foreach var in `scalars' {
 	replace `var'=e(`var') if `var'==.
 	}
 loc j=0
-foreach parm in `namelist' {
+foreach parm in `anything' {
 	loc ++j
 	cap replace parm="`parm'" in `=`N'+`j''
 	cap replace estimate=`r`level1''[`=rownumb(`r`level1'',"b")',`=colnumb(`r`level1'',"`parm'")'] in `=`N'+`j''

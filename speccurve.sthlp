@@ -197,19 +197,13 @@
 
 	{pstd}
 	Plot the marginal effects of weight on the probability that a car is foreign from linera probability, logit and probit models with various controls, from estmod.ster:{p_end}
-	{phang2}{cmd:. 	speccurve using estmod, param(weight) controls panel(lpm logit probit)} {p_end}
-	{phang2}({stata "speccurve using estmod, param(weight) controls panel(lpm logit probit)":{it:click to run}}) {p_end}
-
-
+	{phang2}{cmd:. 	speccurve using estmod, param(weight) controls panel(lpm logit probit) graphopts(ytitle(marginal effect of weight))} {p_end}
+	{phang2}({stata "speccurve using estmod, param(weight) controls panel(lpm logit probit) graphopts(ytitle(marginal effect of weight))":{it:click to run}}) {p_end}
+	
 	{pstd}
-	Plot results of fixed effects models, adding a panel that indicates the inclusion of fixed effects:{p_end}
-	{phang2}{cmd:. 	speccurve ols* fe*, param(weight) controls panel(i_rep78) keep(20 20 20)} {p_end}
-	{phang2}({stata "speccurve ols* fe*, param(weight) controls panel(i_rep78) keep(20 20 20)":{it:click to run}}) {p_end}
-
-	{pstd}
-	Plot results subgroup specific models (foreign vs domestic cars vs. both), adding a panel that indicates the subgroup:{p_end}
-	{phang2}{cmd:. 	speccurve using subgroups, param(weight) panel(foreign domestic,title(subgroup)) controls(title(subgroup)) keep(20 20 20)} {p_end}
-	{phang2}({stata "speccurve using subgroups, param(weight) panel(foreign domestic,title(subgroup)) controls(title(subgroup)) keep(20 20 20)":{it:click to run}}) {p_end}
+	Plot subgroup specific models (foreign vs domestic cars vs. both), adding a panel that indicates the subgroup:{p_end}
+	{phang2}{cmd:. 	speccurve using subgroups, param(weight) panel(foreign domestic,title(subgroup)) controls(title(controls)) keep(20 20 20)} {p_end}
+	{phang2}({stata "speccurve using subgroups, param(weight) panel(foreign domestic,title(subgroup)) controls(title(controls)) keep(20 20 20)":{it:click to run}}) {p_end}
 	
 	{marker saved_results}{...}
 	{title:Stored results}
