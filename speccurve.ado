@@ -52,7 +52,7 @@ program define speccurve
 	program define speccurverun, rclass
 		version 15.0
 		
-		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) sort(name) save(name) fill addscalar(string)]
+		syntax [anything] [using/] , param(name) [controlpanelno(integer 0) addcoef(string) controlpanel graphopts(string) controltitle(string) controllabels(string) controlgraphopts(string) main(string) panels(string) keep(numlist min=3 max=3 >=0 integer) level(numlist min=1 max=2 sort integer >0 <100) title(string) sort(name) save(name) fill addscalar(string) drop(string)]
 		
 		
 		qui {
@@ -182,7 +182,11 @@ program define speccurve
 			}
 		
 		drop if parm=="_cons"
-		
+		if "`drop'"!="" {
+			foreach dr in `drop' {
+				drop if strpos(parm,"`dr'")>0
+			}
+		}
 		
 
 		//automatic control panel
